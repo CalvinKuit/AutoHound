@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Autotrader Scraper</title>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+
+  <body>
+    <br>
+    <div class="image-container">
+      <img src="https://i.pinimg.com/564x/43/c5/ed/43c5eda82a29a5550d86ad644d64d7a2.jpg" alt="logo" style="width: 20%;">
+    </div>
+    <h1>AutoHound</h1>
+    <h2>Unleash Your Ride</h2>
+    <br>
+
+<form action="/" method="post">
+  <label for="autotrader_url"></label>
+  <input type="text" id="autotrader_url" name="autotrader_url" placeholder="Enter Autotrader Link">
+  <input type="submit" value="Search">
+</form>
+
+    
+
+  </body>
+</html>

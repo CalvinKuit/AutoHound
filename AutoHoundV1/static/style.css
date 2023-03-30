@@ -1,0 +1,201 @@
+@font-face {
+  font-family: 'Lexend Deca';
+  src: url('lexend-deca.woff2') format('woff2'),
+       url('lexend-deca.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 12px;
+    margin: 0;
+    padding: 0;
+    background-color: #fff;
+    color: #333;
+  }
+  
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 32px;
+    font-weight: 700;
+    text-align: center;
+    padding-left: 30px;
+    margin-top: 30px;
+    margin-bottom: 30px;
+    letter-spacing: 2px;
+  }
+
+  h2 {
+    font-family: 'Cinzel', serif;
+    padding-left: 30px;
+    font-weight: 300;
+    font-size: 16px;
+    text-align: center;
+  }
+  
+  form {
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #f7f7f7;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #333;
+    letter-spacing: 1px;
+  }
+  
+  input[type="text"] {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    font-size: 18px;
+    border: none;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    background-color: #f1f1f1;
+    color: #333;
+  }
+  
+  input[type="submit"] {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: transparent;
+    color: #333;
+    border: 2px solid #333;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  input[type="submit"]:hover {
+    background-color: #333;
+    color: #fff;
+  }
+  
+
+
+  .container{
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .image-container {
+    display: flex;
+    justify-content: center;
+  }
+
+  .image-container img {
+    width: 30%;
+    transition: filter 0.5s ease;
+    filter: brightness(110%);
+    }
+
+  .image-container img:hover {
+    filter: brightness(150%);
+  }
+
+table {
+  border-collapse: separate;
+  border-spacing: 20px;
+  margin-bottom: 20px;
+}
+
+.spaced-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.spaced-table th,
+.spaced-table td {
+  padding: 8px;
+  text-align: left;
+}
+
+.spaced-table tr:hover {
+  background-color: #f5f5f5;
+}
+  
+
+  /* Loading Animation */
+  .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    background-color: rgba(255, 255, 255, 0.6);
+}
+.loading-circle {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-top: 4px solid #777;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.download-button {
+  background-color: transparent;
+  color: #333;
+  padding: 10px 20px;
+  font-size: 12px;
+  border: 2px solid #333;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  letter-spacing: 1px;
+  /* font-weight: 700; */
+}
+
+.download-button:hover {
+  background-color: #333;
+  color: #fff;
+}
+
+#car-data {
+  display: none;
+}
+
+
+  .button {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: transparent;
+    color: #333;
+    border: 2px solid #333;
+    border-radius: 4px;
+    font-size: 12px;
+    /* font-weight: bold; */
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .button:hover {
+    background-color: #333;
+    color: #fff;
+  }

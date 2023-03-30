@@ -1,0 +1,288 @@
+I m wokring on a flask project. I will not post the code from all the files I have
+
+autotrader_scraper.py: 
+
+import requests
+from bs4 import BeautifulSoup
+import json
+import re
+import itertools
+import time
+import datetime
+import random
+
+# Define a list of user-agent strings
+# user_agents = [
+#     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+#     "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+#     "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+#     "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+#     "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+#     "Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+# ]
+
+request_count = 0 
+
+# obtain last page by scraping from url given
+def get_lastpage():
+    global request_count
+    request_count += 1
+    url = "https://www.autotrader.co.za/cars-for-sale?isused=True&priceoption=RetailPrice"
+    # headers = {"User-Agent": random.choice(user_agents)}  # Choose a random user-agent
+    mainresponse = requests.get(url)
+    print(mainresponse)
+    time.sleep(2)
+    mainsoup = BeautifulSoup(mainresponse.text, "html.parser")
+    page_numbers = [item.text.strip().replace(" ","") for item in mainsoup.find_all("li", class_="e-page-number")]
+    last_page = page_numbers[-1]
+    return int(last_page)
+
+#-----------REAL LAST PAGE IF SCRAPE FAILS-------------------
+def is_lastpage(url):
+    global request_count
+    request_count += 1
+    # headers = {"User-Agent": random.choice(user_agents)}  # Choose a random user-agent
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, "html.parser")
+    elements = soup.find_all("a", class_="gm-float-right m-disabled e-pagination-link")
+    pagenumber = url.split("pagenumber=")[1].split("&")[0]
+    if len(elements) > 0:
+        # print(pagenumber)
+        return True #int(pagenumber)
+    else:
+        return False
+
+#------------lastpage VARIBLE INT--------------------------
+status = "Success"
+
+try:
+    lastpage = get_lastpage()
+except IndexError:
+    status = "Fail"
+    print("server not available")
+
+#obtain car links for one page only 
+def get_carlinks(url_link):
+    global request_count
+    request_count += 1
+    url = url_link
+    # headers = {"User-Agent": random.choice(user_agents)}  # Choose a random user-agent
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    link_list = []
+    for div in soup.find_all("div", class_="e-available m-has-photos"):
+        for a in div.find_all("a", href=True):
+            link = "https://www.autotrader.co.za" + a["href"]
+            link_list.append(link)
+
+    return (link_list)
+
+# returns data scraped from a single page in json format
+def autotrader_data(url_link):
+    global request_count
+    request_count += 1
+    response = requests.get(url_link)
+    # headers = {"User-Agent": random.choice(user_agents)}  # Choose a random user-agent
+    if response.status_code == 503:
+        return f"Server Unavailable"
+    else:
+        time.sleep(3)
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        components = url_link.split("/")
+
+        brand = components[4]
+        model = components[5]
+        spec = components[6]
+
+        # Get the text of the h1 with class "e-listing-title"
+        
+        full_title = soup.find("h1", class_="e-listing-title").text.strip().replace("For Sale", "")[5:].rstrip()
+
+        #getting the primary key
+        title = soup.title.text.strip()
+        id = re.search("ID: (.*) - AutoTrader", title).group(1)
+
+        # Get the text of the div with class "e-price"
+        price = soup.find("div", class_="e-price").text.strip().replace("\xa0", " ").replace("R ","").replace(" ","")
+
+        # Get the text of all the list items with class "e-summary-icon"
+        text_list = [item.text.strip().replace("\xa0", "").replace(" km","") for item in soup.find_all("li", class_="e-summary-icon")]
+
+        car_data = {
+            "id": "AT" + id,
+            "make": brand,
+            "model": model,
+            "spec": spec,
+            "full_title": full_title,
+            "price": price,
+            "condition": text_list[0],
+            "year": text_list[1],
+            "km": text_list[2],
+            "transmission": text_list[3],
+            "fuel_type": text_list[4],
+            "source": "AutoTrader",
+            "link": url_link
+        }
+
+        # Get the text of all the divs with class "col-6" within the parent div
+        parent_div = soup.find("div", class_="b-striped-specs")
+        col_divs = parent_div.find_all("div", class_="col-6")
+        more_specs = [col_div.text for col_div in col_divs]
+
+        # Add each 2nd item in more_specs to car_data with the specified key values
+        car_data["LastUpdated"] = more_specs[1]
+
+        return car_data 
+
+
+
+app.py: 
+from flask import Flask, request, render_template
+from autotrader_scraper import get_carlinks, autotrader_data
+
+app = Flask(__name__)
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if request.method == 'POST':
+        autotrader_url = request.form['autotrader_url']
+        page_links = get_carlinks(autotrader_url)
+        car_data_list = []
+        for link in page_links:
+            try:
+                car_data = autotrader_data(link)
+                car_data_list.append(car_data)
+            except Exception as e:
+                print(f"Error scraping data for link: {link}. Error message: {str(e)}")
+        return render_template('result.html', car_data_list=car_data_list)
+    else:
+        return render_template('index.html')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
+
+
+Calvin Kuit
+index.html: 
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Autotrader Scraper</title>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+
+  <body>
+    <br>
+    <div class="image-container">
+      <img src="https://thefamilynyc.com/wp-content/uploads/2016/11/Hound-Logo-for-site.png" alt="logo" style="width: 20%;">
+    </div>
+    <h1>AutoHound</h1>
+    <h2>Live Market Tracker</h2>
+    <br>
+    <form action="/" method="post">
+      <label for="autotrader_url">Enter URL:</label>
+      <input type="text" id="autotrader_url" name="autotrader_url">
+      <input type="submit" value="Analyse The Market">
+    </form>
+  </body>
+</html>
+
+
+
+
+result.html: 
+<!DOCTYPE html>
+<html>
+  <head>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <title>Autotrader Scraper Results</title>
+  </head>
+
+  <br>
+  <div class="image-container">
+    <img src="https://thefamilynyc.com/wp-content/uploads/2016/11/Hound-Logo-for-site.png" alt="logo" style="width: 20%;">
+  </div>
+
+  <body>
+    <h1>Market Data</h1>
+
+    <div class="container">
+
+    <table id="car-data" class="spaced-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Make</th>
+          <th>Model</th>
+          <th>Spec</th>
+          <th>Full Title</th>
+          <th>Price</th>
+          <th>Condition</th>
+          <th>Year</th>
+          <th>KM</th>
+          <th>Transmission</th>
+          <th>Fuel Type</th>
+          <th>Source</th>
+          <th>Link</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for car in car_data_list %}
+        <tr>
+          <td>{{ car.id }}</td>
+          <td>{{ car.make }}</td>
+          <td>{{ car.model }}</td>
+          <td>{{ car.spec }}</td>
+          <td>{{ car.full_title }}</td>
+          <td>{{ car.price }}</td>
+          <td>{{ car.condition }}</td>
+          <td>{{ car.year }}</td>
+          <td>{{ car.km }}</td>
+          <td>{{ car.transmission }}</td>
+          <td>{{ car.fuel_type }}</td>
+          <td>{{ car.source }}</td>
+          <td><a href="{{ car.link }}">Link</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <br>
+    <br>
+    <a href="{{ url_for('index') }}" class="button">Back to Home</a>
+    <button onclick="downloadCSV()">Download CSV</button>
+
+    </div>
+
+    <script>
+      function downloadCSV() {
+        const tableData = [];
+        const rows = document.querySelectorAll('#car-data tbody tr');
+
+        rows.forEach(row => {
+          const rowData = [];
+          row.querySelectorAll('td').forEach(cell => {
+            rowData.push(cell.innerText);
+          });
+          tableData.push(rowData.join(','));
+        });
+
+        const csvContent = 'data:text/csv;charset=utf-8,' + tableData.join('\n');
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', 'car_data.csv');
+        document.body.appendChild(link);
+        link.click();
+      }
+    </script>
+
+  </body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0"></script>
+    <script src="{{ url_for('static', filename='js/results.js') }}"></script>
+    <title>Autotrader Scraper Results</title>
+  </head>
+  <!-- https://thefamilynyc.com/wp-content/uploads/2016/11/Hound-Logo-for-site.png -->
+  <br>
+  <div class="image-container">
+    <img src="https://i.pinimg.com/564x/43/c5/ed/43c5eda82a29a5550d86ad644d64d7a2.jpg" alt="logo" style="width: 20%;">
+  </div>
+
+  <body>
+    <h1 style="font-family: 'Cinzel', serif;;">AutoHound</h1>
+    <h2>Displaying report for {{ car_data_list.0.make }} {{ car_data_list.0.model }} {{ car_data_list.0.spec }} </h2>
+    <div class="container">
+    <!-- plot  -->
+    <canvas id="chart"></canvas>
+    <br>
+    <table id="car-data" class="spaced-table">
+      <thead>
+        <tr>
+          <th>Id</th>
+          <th>Make</th>
+          <th>Model</th>
+          <th>Spec</th>
+          <th>Full Title</th>
+          <th>Price</th>
+          <th>Condition</th>
+          <th>Year</th>
+          <th>Milage(Km)</th>
+          <th>Transmission</th>
+          <th>Fuel Type</th>
+          <th>Source</th>
+          <th>Link</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for car in car_data_list %}
+        <tr>
+          <td>{{ car.id }}</td>
+          <td>{{ car.make }}</td>
+          <td>{{ car.model }}</td>
+          <td>{{ car.spec }}</td>
+          <td>{{ car.full_title }}</td>
+          <td>{{ car.price }}</td>
+          <td>{{ car.condition }}</td>
+          <td>{{ car.year }}</td>
+          <td>{{ car.km }}</td>
+          <td>{{ car.transmission }}</td>
+          <td>{{ car.fuel_type }}</td>
+          <td>{{ car.source }}</td>
+          <td><a href="{{ car.link }}">Link</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <br>
+    <br>
+    <a href="{{ url_for('index') }}" class="button"> << </a>
+    <button id="toggle-table-button" class="download-button" onclick="toggleTable()">View Vehicles</button>
+    <button class="download-button">Compare</button>
+    <button class="download-button">Sniff Deal</button>
+    <button class="download-button">Value Vehicle</button>
+    <button class="download-button">Future Estimate</button>
+    <button class="download-button">Cost Estimate</button>
+    <button onclick="downloadCSV()" class="download-button">Download Data</button>
+    </div>
+    <br><br>
+
+<script>
+function downloadCSV() {
+    const tableData = [];
+    const rows = document.querySelectorAll('#car-data tbody tr');
+    const headers = [];
+    document.querySelectorAll('#car-data thead th').forEach(header => {
+      headers.push(header.innerText);
+    });
+    tableData.unshift(headers.join(','));
+    rows.forEach(row => {
+      const rowData = [];
+      row.querySelectorAll('td').forEach(cell => {
+        rowData.push(cell.innerText);
+      });
+      tableData.push(rowData.join(','));
+    });
+    const csvContent = 'data:text/csv;charset=utf-8,' + tableData.join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'car_data.csv');
+    document.body.appendChild(link);
+    link.click();
+  }
+
+ // Get the car data from the Flask app
+const carData = {{ car_data_list | safe }};
+// Create an object to store the average price by year
+const averagePriceByYear = {};
+// Loop through the car data and calculate the average price for each year
+carData.forEach((car) => {
+  if (!averagePriceByYear[car.year]) {
+    averagePriceByYear[car.year] = {
+      count: 0,
+      total: 0,
+      average: 0,
+    };
+  }
+  averagePriceByYear[car.year].count += 1;
+  averagePriceByYear[car.year].total += Number(car.price);
+});
+Object.keys(averagePriceByYear).forEach((year) => {
+  averagePriceByYear[year].average =
+    averagePriceByYear[year].total / averagePriceByYear[year].count;
+});
+// Create an array of objects with the year and average price for each year
+const chartData = Object.keys(averagePriceByYear).map((year) => ({
+  year: year,
+  price: averagePriceByYear[year].average,
+}));
+// Sort the chart data by year in descending order
+chartData.sort((a, b) => b.year - a.year);
+// Get the canvas element for the chart
+const ctx = document.getElementById('chart').getContext('2d');
+// Create the chart
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: chartData.map((data) => data.year),
+    datasets: [
+      {
+        label: 'Average Price by Year',
+        data: chartData.map((data) => data.price),
+        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+        borderColor: 'rgba(255, 99, 132, 1)',
+        borderWidth: 1,
+      },
+    ],
+  },
+  options: {
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function (value, index, values) {
+            return 'R' + value.toLocaleString();
+          },
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        labels: {
+          color: 'black' // set the color of the legend labels
+        }
+      }
+    }
+  },
+});
+
+function toggleTable() {
+  const table = document.getElementById('car-data');
+  if (table.style.display === 'none') {
+    table.style.display = 'table';
+  } else {
+    table.style.display = 'none';
+  }
+}
+
+// conditional formatting
+
+// for price
+const rows = document.querySelectorAll('#car-data tbody tr');
+  let totalPrice = 0;
+  let count = 0;
+  rows.forEach(row => {
+    const priceCell = row.querySelector('td:nth-child(6)');
+    const price = parseFloat(priceCell.innerText.replace(/,/g, ''));
+    if (!isNaN(price)) {
+      totalPrice += price;
+      count++;
+    }
+  });
+  const averagePrice = totalPrice / count;
+rows.forEach(row => {
+  const priceCell = row.querySelector('td:nth-child(6)');
+  const price = parseFloat(priceCell.innerText.replace(/,/g, ''));
+  if (price > averagePrice) {
+    priceCell.style.backgroundColor = 'rgba(255, 0, 0, 0.2)'; // light red
+  } else {
+    priceCell.style.backgroundColor = 'rgba(0, 255, 0, 0.2)'; // light green
+  }
+});
+
+// for milage
+const rows2 = document.querySelectorAll('#car-data tbody tr');
+let totalKM = 0;
+let count2 = 0;
+rows.forEach(row2 => {
+  const kmCell = row2.querySelector('td:nth-child(9)');
+  const km = parseFloat(kmCell.innerText.replace(/,/g, ''));
+  if (!isNaN(km)) {
+    totalKM += km;
+    count++;
+  }
+});
+const averageKM = totalKM / count;
+rows.forEach(row2 => {
+  const kmCell = row2.querySelector('td:nth-child(9)');
+  const km = parseFloat(kmCell.innerText.replace(/,/g, ''));
+  if (km > averageKM) {
+    kmCell.style.backgroundColor = 'rgba(255, 0, 0, 0.2)'; // light red
+  } else {
+    kmCell.style.backgroundColor = 'rgba(0, 255, 0, 0.2)'; // light green
+  }
+});
+
+</script>
+
+
+
+  </body>
+</html>
